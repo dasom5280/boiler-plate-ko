@@ -16,7 +16,7 @@ const UserSchema = mongoose.Schema({
     },
     password: {
         type : String,
-        maxlength: 100
+        minlength: 5
     },
     lastname: {
         type : String,
@@ -39,7 +39,7 @@ UserSchema.pre('save', function( next ){
     var user = this;
     
     if(user.isModified('password')){
-    //비밀번호를 암호와 시킨다.
+    //비밀번호를 암호화 시킨다.
         bcrypt.genSalt(saltRounds, function(err, salt) {
             if(err) return next(err)
 
@@ -75,8 +75,21 @@ UserSchema.methods.generateToken = function(cb) {
         if(err) return cb(err)
         cb(null, user)
     })
+}
 
-    
+UserSchema.statics.findByToken = function(token, cb) {
+    var user = this;
+
+    //토큰을 decode 한다.
+    jwt.verify(token, 'secretToken', function(err,decoded){
+        //유저 id를 이용해서 유저를 찾은 다음에
+        //클라이언트에서 가져온 token과 db에 보관된 토큰이 일치하는지 확인
+
+        user.findOne({"_id": decoded, "token": token}, function(err, user){
+            if(err) return cb(err)
+            cb(null, user)
+        })
+    })
 }
 
 const User = mongoose.model('User', UserSchema);
